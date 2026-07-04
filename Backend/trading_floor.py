@@ -6,6 +6,7 @@ from agents import add_trace_processor
 from market import is_market_open
 from dotenv import load_dotenv
 import os
+from uuid import uuid4
 
 load_dotenv(override=True)
 
@@ -17,7 +18,7 @@ USE_MANY_MODELS = os.getenv("USE_MANY_MODELS", "false").strip().lower() == "true
 
 names = ["Warren", "George", "Ray", "Cathie"]
 lastnames = ["Patience", "Bold", "Systematic", "Crypto"]
-
+namesandlastnames = dict(zip(names, lastnames))
 if USE_MANY_MODELS:
     model_names = [
         "gpt-4.1-mini",
@@ -42,10 +43,11 @@ async def run_every_n_minutes():
     add_trace_processor(LogTracer())
     traders = create_traders()
     while True:
-        if RUN_EVEN_WHEN_MARKET_IS_CLOSED or is_market_open():
-            await asyncio.gather(*[trader.run() for trader in traders])
-        else:
-            print("Market is closed, skipping run")
+        # if RUN_EVEN_WHEN_MARKET_IS_CLOSED or is_market_open():
+        await asyncio.gather(*[trader.run() for trader in traders])
+        # else:
+        #     print("Market is closed, skipping run")
+        #     return "Market is closed, come back later."
         await asyncio.sleep(RUN_EVERY_N_MINUTES * 60)
 
 

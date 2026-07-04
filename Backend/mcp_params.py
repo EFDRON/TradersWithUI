@@ -1,4 +1,5 @@
 import os
+import sys
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
@@ -21,9 +22,13 @@ alpaca_params = {
 
 # The full set of MCP servers for the trader: Accounts, Push Notification and the Market
 
+
+
 trader_mcp_server_params = [
-    {"command": "python", "args": ["accounts_server.py"]},
-    {"command": "python", "args": ["push_server.py"]},
+    # {"command": "python", "args": ["accounts_server.py"]},
+    # {"command": "python", "args": ["push_server.py"]},
+    {"command": sys.executable, "args": ["accounts_server.py"]},
+    {"command": sys.executable, "args": ["push_server.py"]},
     alpaca_params,
 ]
 # The full set of MCP servers for the researcher: Fetch, Brave Search and Memory
@@ -31,7 +36,8 @@ trader_mcp_server_params = [
 def researcher_mcp_server_params(name: str):
     return [
         {"command": "uvx", "args": ["mcp-server-fetch"]},
-        {"command": "python", "args": [ "tavily_server.py"]},
+        # {"command": "python", "args": [ "tavily_server.py"]},
+        {"command": sys.executable, "args": ["tavily_server.py"]},
         {
             "command": "npx",
             "args": ["-y", "mcp-memory-libsql"],

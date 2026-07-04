@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from market import get_share_price
 from database import write_account, read_account, write_log
+from uuid import uuid4
 
 load_dotenv(override=True)
 INITIAL_BALANCE = 10_000.0
@@ -25,6 +26,7 @@ class Transaction(BaseModel):
 
 
 class Account(BaseModel):
+    id: str 
     name: str
     balance: float
     strategy: str
@@ -37,12 +39,20 @@ class Account(BaseModel):
         fields = read_account(name.lower())
         if not fields:
             fields = {
+                "id": str(uuid4()),
                 "name": name.lower(),
                 "balance": INITIAL_BALANCE,
                 "strategy": "",
                 "holdings": {},
                 "transactions": [],
                 "portfolio_value_time_series": []
+            }
+            print(f"Creating new account for {fields}")
+            write_account(name, fields)
+        elif "id" not in fields:
+            fields = {
+                **fields,
+                "id": str(uuid4()),
             }
             write_account(name, fields)
         return cls(**fields)

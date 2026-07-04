@@ -1,6 +1,6 @@
 from contextlib import AsyncExitStack
 from accounts_client import read_accounts_resource, read_strategy_resource
-# from tracers import make_trace_id
+from tracers import make_trace_id
 import uuid
 from agents import Agent, Tool, Runner, OpenAIChatCompletionsModel, trace
 from openai import AsyncOpenAI
@@ -61,7 +61,8 @@ async def get_researcher_tool(mcp_servers, model_name) -> Tool:
 
 
 class Trader:
-    def __init__(self, name: str, lastname="Trader", model_name="gpt-4o-mini"):
+    def __init__(self,name: str, lastname="Trader", model_name="gpt-4o-mini"):
+        
         self.name = name
         self.lastname = lastname
         self.agent = None
@@ -115,10 +116,9 @@ class Trader:
 
     async def run_with_trace(self):
         trace_name = f"{self.name}-trading" if self.do_trade else f"{self.name}-rebalancing"
-        trace_id = f"{self.name} {str(uuid.uuid4())}"
+        trace_id = make_trace_id(f"{self.name.lower()}")
         with trace(trace_name, trace_id=trace_id):
             await self.run_with_mcp_servers()
-
     async def run(self):
         try:
             await self.run_with_trace()

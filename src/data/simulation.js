@@ -1,162 +1,187 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { TRADERS, ACTIVITY_TEMPLATES, RECENT_TRADES_TEMPLATES } from './mockTraders';
+import { useEffect, useRef, useState } from "react";
 
-// Generate initial balance history (last 60 data points)
-function generateInitialHistory(baseBalance, points = 60) {
-  const history = [];
-  let balance = baseBalance * 0.92; // Start lower
-  const volatility = baseBalance * 0.003;
-  const drift = (baseBalance - balance) / points;
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:5000";
+const POLL_INTERVAL_MS = 10000;
+const TRADER_ORDER = ["warren", "george", "ray", "cathie"];
 
-  for (let i = 0; i < points; i++) {
-    const change = (Math.random() - 0.45) * volatility + drift;
-    balance += change;
-    history.push({
-      time: new Date(Date.now() - (points - i) * 30000).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      balance: Math.round(balance * 100) / 100,
-    });
-  }
-  return history;
+const ACTIVITY_TYPE_MAP = {
+  research: "research",
+  analysis: "analysis",
+  trade: "trade",
+  risk: "risk",
+  complete: "complete",
+  trace: "complete",
+  account: "complete",
+  span: "complete",
+};
+
+function normalizeNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-// Generate a random activity event
-function generateActivity(traderId) {
-  const templates = ACTIVITY_TEMPLATES[traderId];
-  if (!templates) return null;
-
-  const typeGroup = templates[Math.floor(Math.random() * templates.length)];
-  const message = typeGroup.messages[Math.floor(Math.random() * typeGroup.messages.length)];
+function normalizeActivity(activity, traderId, index) {
+  const type = ACTIVITY_TYPE_MAP[String(activity?.type ?? "").toLowerCase()] ?? "complete";
+  const timestamp = activity?.time ?? activity?.timestamp ?? "";
 
   return {
-    id: `${traderId}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-    type: typeGroup.type,
-    message,
-    timestamp: new Date().toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }),
+    id: `${traderId}-${timestamp || index}-${index}`,
+    type,
+    message: activity?.message ?? "",
+    timestamp,
   };
 }
 
-// Get status based on recent activity
-function getStatus(activities) {
-  if (activities.length === 0) return 'INITIALIZING';
-  const lastType = activities[activities.length - 1]?.type;
-  switch (lastType) {
-    case 'research': return 'RESEARCHING';
-    case 'analysis': return 'ANALYZING';
-    case 'trade': return 'TRADING';
-    case 'risk': return 'RISK CHECK';
-    case 'complete': return 'ACTIVE';
-    default: return 'ACTIVE';
-  }
+function normalizeHoldings(holdings) {
+  return (holdings ?? []).map((holding) => ({
+    ticker: String(holding?.ticker ?? holding?.symbol ?? "").toUpperCase(),
+    shares: normalizeNumber(holding?.shares),
+    avgPrice: normalizeNumber(holding?.avgPrice),
+    currentPrice: normalizeNumber(holding?.currentPrice),
+  }));
 }
 
-// Main simulation hook
-export function useTraderSimulation() {
-  const [traders, setTraders] = useState(() =>
-    TRADERS.map((trader) => ({
-      ...trader,
-      currentBalance: trader.initialBalance,
-      previousBalance: trader.initialBalance,
-      balanceHistory: generateInitialHistory(trader.initialBalance),
-      activities: [],
-      status: 'INITIALIZING',
-      pnl: 0,
-      pnlPercent: 0,
-      recentTrades: RECENT_TRADES_TEMPLATES[trader.id] || [],
-      holdings: trader.holdings.map(h => ({ ...h })),
-    }))
+function normalizeTrades(trades) {
+  return (trades ?? []).map((trade) => ({
+    ...trade,
+    side: String(trade?.side ?? "").toUpperCase(),
+    ticker: String(trade?.ticker ?? trade?.symbol ?? "").toUpperCase(),
+    time: trade?.time ?? trade?.timestamp ?? "",
+    shares: normalizeNumber(trade?.shares ?? Math.abs(trade?.quantity ?? 0)),
+    price: normalizeNumber(trade?.price),
+  }));
+}
+
+function getStatus(trader) {
+  if (!trader.activities.length && !trader.recentTrades.length) {
+    return "INITIALIZING";
+  }
+
+  const latestActivity = trader.activities.at(-1);
+  if (latestActivity?.type === "research") return "RESEARCHING";
+  if (latestActivity?.type === "analysis") return "ANALYZING";
+  if (latestActivity?.type === "trade") return "TRADING";
+  if (latestActivity?.type === "risk") return "RISK CHECK";
+  if (latestActivity?.type === "complete") return "ACTIVE";
+
+  return trader.recentTrades.length > 0 ? "TRADING" : "ACTIVE";
+}
+
+function normalizeTrader(trader, index) {
+  const traderId = String(trader?.id ?? trader?.name ?? index).toLowerCase();
+  const balanceHistory = (trader?.balanceHistory ?? []).map((point) => ({
+    time: String(point?.time ?? ""),
+    balance: normalizeNumber(point?.balance),
+  }));
+  const activities = (trader?.activities ?? []).map((activity, activityIndex) =>
+    normalizeActivity(activity, traderId, activityIndex),
+  );
+  const recentTrades = normalizeTrades(trader?.recentTrades);
+  const holdings = normalizeHoldings(trader?.holdings);
+  const initialBalance = normalizeNumber(trader?.initialBalance, normalizeNumber(trader?.currentBalance));
+  const currentBalance = normalizeNumber(trader?.currentBalance, initialBalance);
+  const previousBalance = normalizeNumber(trader?.previousBalance, currentBalance);
+  const pnl = normalizeNumber(trader?.pnl, currentBalance - initialBalance);
+  const pnlPercent = normalizeNumber(
+    trader?.pnlPercent,
+    initialBalance ? (pnl / initialBalance) * 100 : 0,
   );
 
-  const intervalsRef = useRef([]);
+  const normalizedTrader = {
+    ...trader,
+    id: traderId,
+    name: trader?.name ?? traderId,
+    role: trader?.role ?? "Trader",
+    description: trader?.description ?? "",
+    color: trader?.color ?? "#00d4ff",
+    colorDim: trader?.colorDim ?? "rgba(0, 212, 255, 0.15)",
+    colorRgb: trader?.colorRgb ?? "0, 212, 255",
+    gradient: trader?.gradient ?? "linear-gradient(135deg, #00d4ff 0%, #2563eb 100%)",
+    initialBalance,
+    currentBalance,
+    previousBalance,
+    pnl,
+    pnlPercent,
+    cash: normalizeNumber(trader?.cash),
+    winRate: normalizeNumber(trader?.winRate),
+    totalTrades: normalizeNumber(trader?.totalTrades),
+    todayTrades: normalizeNumber(trader?.todayTrades),
+    balanceHistory,
+    activities,
+    recentTrades,
+    holdings,
+  };
+
+  return {
+    ...normalizedTrader,
+    status: getStatus(normalizedTrader),
+  };
+}
+
+function sortTraders(traders) {
+  return [...traders].sort((a, b) => {
+    const leftIndex = TRADER_ORDER.indexOf(String(a.id).toLowerCase());
+    const rightIndex = TRADER_ORDER.indexOf(String(b.id).toLowerCase());
+
+    if (leftIndex === -1 && rightIndex === -1) {
+      return String(a.name).localeCompare(String(b.name));
+    }
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
+}
+
+async function fetchTraders(signal) {
+  const response = await fetch(`${API_BASE_URL}/traders`, { signal });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load traders: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return sortTraders((Array.isArray(data) ? data : []).map(normalizeTrader));
+}
+
+export function useTraderSimulation() {
+  const [traders, setTraders] = useState([]);
+  const requestInFlight = useRef(false);
 
   useEffect(() => {
-    // Balance update interval (every 2 seconds)
-    const balanceInterval = setInterval(() => {
-      setTraders((prev) =>
-        prev.map((trader) => {
-          const volatility = trader.initialBalance * 0.002;
-          const drift = trader.personality === 'aggressive' ? 0.0003
-            : trader.personality === 'conservative' ? 0.0001
-            : trader.personality === 'calculated' ? 0.0002
-            : 0.00005;
+    let isMounted = true;
+    const controller = new AbortController();
 
-          const change = (Math.random() - 0.48) * volatility + trader.initialBalance * drift;
-          const newBalance = Math.round((trader.currentBalance + change) * 100) / 100;
-          const pnl = Math.round((newBalance - trader.initialBalance) * 100) / 100;
-          const pnlPercent = Math.round((pnl / trader.initialBalance) * 10000) / 100;
+    const loadTraders = async () => {
+      if (requestInFlight.current) return;
 
-          const newPoint = {
-            time: new Date().toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-            balance: newBalance,
-          };
+      requestInFlight.current = true;
+      try {
+        const liveTraders = await fetchTraders(controller.signal);
+        if (isMounted) {
+          setTraders(liveTraders);
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          console.error("Unable to load traders from backend", error);
+        }
+      } finally {
+        requestInFlight.current = false;
+      }
+    };
 
-          // Also slightly fluctuate holdings
-          const updatedHoldings = trader.holdings.map((h) => ({
-            ...h,
-            currentPrice:
-              Math.round(
-                (h.currentPrice + (Math.random() - 0.48) * h.currentPrice * 0.005) * 100
-              ) / 100,
-          }));
-
-          return {
-            ...trader,
-            previousBalance: trader.currentBalance,
-            currentBalance: newBalance,
-            pnl,
-            pnlPercent,
-            balanceHistory: [...trader.balanceHistory.slice(-59), newPoint],
-            holdings: updatedHoldings,
-          };
-        })
-      );
-    }, 2000);
-
-    // Activity feed intervals (staggered per trader for realism)
-    const activityIntervals = TRADERS.map((trader, index) => {
-      const baseInterval = trader.personality === 'aggressive' ? 2500
-        : trader.personality === 'calculated' ? 1800
-        : trader.personality === 'conservative' ? 4500
-        : 3500;
-
-      return setInterval(() => {
-        const newActivity = generateActivity(trader.id);
-        if (!newActivity) return;
-
-        setTraders((prev) =>
-          prev.map((t) => {
-            if (t.id !== trader.id) return t;
-            const newActivities = [...t.activities, newActivity].slice(-50);
-            return {
-              ...t,
-              activities: newActivities,
-              status: getStatus(newActivities),
-            };
-          })
-        );
-      }, baseInterval + Math.random() * 1500);
-    });
-
-    intervalsRef.current = [balanceInterval, ...activityIntervals];
+    loadTraders();
+    const intervalId = setInterval(loadTraders, POLL_INTERVAL_MS);
 
     return () => {
-      intervalsRef.current.forEach(clearInterval);
+      isMounted = false;
+      controller.abort();
+      clearInterval(intervalId);
     };
   }, []);
 
   return traders;
 }
 
-// Hook for animated number counting
 export function useAnimatedNumber(value, duration = 500) {
   const [displayed, setDisplayed] = useState(value);
   const frameRef = useRef(null);
@@ -171,7 +196,6 @@ export function useAnimatedNumber(value, duration = 500) {
     const animate = (now) => {
       const elapsed = now - startRef.current;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = fromRef.current + (value - fromRef.current) * eased;
       setDisplayed(current);
@@ -190,17 +214,15 @@ export function useAnimatedNumber(value, duration = 500) {
   return displayed;
 }
 
-// Format currency
 export function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
 }
 
-// Format large numbers compactly
 export function formatCompact(value) {
   if (Math.abs(value) >= 1000000) {
     return `$${(value / 1000000).toFixed(2)}M`;

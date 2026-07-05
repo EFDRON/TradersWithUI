@@ -31,7 +31,11 @@ export default function SystemMetrics({ traders }) {
   const totalValue = traders.reduce((sum, t) => sum + t.currentBalance, 0);
   const totalPnl = traders.reduce((sum, t) => sum + t.pnl, 0);
   const totalTrades = traders.reduce((sum, t) => sum + t.todayTrades, 0);
-  const avgWinRate = traders.reduce((sum, t) => sum + t.winRate, 0) / traders.length;
+  const avgWinRate = traders.length
+    ? traders.reduce((sum, t) => sum + t.winRate, 0) / traders.length
+    : 0;
+  const startingCapital = totalValue - totalPnl;
+  const pnlPercent = startingCapital ? (totalPnl / startingCapital) * 100 : 0;
 
   const animatedTotal = useAnimatedNumber(totalValue);
   const animatedPnl = useAnimatedNumber(totalPnl);
@@ -50,7 +54,7 @@ export default function SystemMetrics({ traders }) {
         icon={Zap}
         label="Combined P&L"
         value={`${animatedPnl >= 0 ? '+' : ''}$${(animatedPnl / 1000).toFixed(2)}K`}
-        subValue={`${((totalPnl / (totalValue - totalPnl)) * 100).toFixed(2)}%`}
+        subValue={`${pnlPercent.toFixed(2)}%`}
         color={totalPnl >= 0 ? '#00e68a' : '#ff4d6a'}
         delay={0.2}
       />

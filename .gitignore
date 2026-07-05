@@ -32,3 +32,5 @@ __pycache__/
 #database
 *.sqlite
 *.db
+#environment variables
+.env

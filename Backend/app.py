@@ -212,8 +212,10 @@ def _build_trader_payload(name: str, account: dict[str, Any] | None = None) -> d
                 "currentPrice": round(current_price, 2),
             }
         )
+    current_balance=round(history[-1][1]) if history else balance
+   
 
-    current_balance = round(portfolio_value, 2)
+    # current_balance = round(history[-1], 2)
     previous_balance = _previous_history_value(history)
     if previous_balance is None:
         previous_balance = current_balance

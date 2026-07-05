@@ -1,17 +1,24 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Eye, TrendingUp, TrendingDown, Award, BarChart3, Zap } from 'lucide-react';
-import BalanceChart from './BalanceChart';
-import ActivityFeed from './ActivityFeed';
-import { useAnimatedNumber, formatCurrency } from '../data/simulation';
+import { useState } from "react";
+import { motion } from "motion/react";
+import {
+  Eye,
+  TrendingUp,
+  TrendingDown,
+  Award,
+  BarChart3,
+  Zap,
+} from "lucide-react";
+import BalanceChart from "./BalanceChart";
+import ActivityFeed from "./ActivityFeed";
+import { useAnimatedNumber, formatCurrency } from "../data/simulation";
 
 const STATUS_COLORS = {
-  RESEARCHING: '#00d4ff',
-  ANALYZING: '#a855f7',
-  TRADING: '#10b981',
-  'RISK CHECK': '#f59e0b',
-  ACTIVE: '#00e68a',
-  INITIALIZING: '#ffffff',
+  RESEARCHING: "#00d4ff",
+  ANALYZING: "#a855f7",
+  TRADING: "#10b981",
+  "RISK CHECK": "#f59e0b",
+  ACTIVE: "#00e68a",
+  INITIALIZING: "#ffffff",
 };
 
 export default function TraderCard({ trader, index, onViewPortfolio }) {
@@ -19,7 +26,7 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
   const animatedBalance = useAnimatedNumber(trader.currentBalance);
   const animatedPnl = useAnimatedNumber(trader.pnl);
 
-  const statusColor = STATUS_COLORS[trader.status] || '#ffffff';
+  const statusColor = STATUS_COLORS[trader.status] || "#ffffff";
   const isPositive = trader.pnl >= 0;
 
   return (
@@ -40,7 +47,7 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
         className="absolute -inset-[1px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
         style={{
           background: `linear-gradient(135deg, rgba(${trader.colorRgb}, 0.1), transparent, rgba(${trader.colorRgb}, 0.05))`,
-          filter: 'blur(1px)',
+          filter: "blur(1px)",
         }}
       />
 
@@ -50,9 +57,9 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
         style={{
           borderColor: isHovered
             ? `rgba(${trader.colorRgb}, 0.2)`
-            : 'rgba(255, 255, 255, 0.06)',
-          transition: 'border-color 0.4s ease',
-          minHeight: '520px',
+            : "rgba(255, 255, 255, 0.06)",
+          transition: "border-color 0.4s ease",
+          minHeight: "520px",
         }}
       >
         {/* Top accent line */}
@@ -61,7 +68,7 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
           style={{
             background: `linear-gradient(90deg, transparent, ${trader.color}, transparent)`,
             opacity: isHovered ? 0.8 : 0.3,
-            transition: 'opacity 0.4s ease',
+            transition: "opacity 0.4s ease",
           }}
         />
 
@@ -76,7 +83,8 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
           <div
             className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
             style={{
-              background: 'linear-gradient(to bottom, transparent, rgba(13, 18, 32, 0.8))',
+              background:
+                "linear-gradient(to bottom, transparent, rgba(13, 18, 32, 0.8))",
             }}
           />
         </div>
@@ -143,28 +151,41 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
           <div className="grid grid-cols-3 gap-3">
             {/* Balance */}
             <div>
-              <p className="text-[9px] text-white/25 font-medium uppercase tracking-wider mb-0.5">Balance</p>
+              <p className="text-[9px] text-white/25 font-medium uppercase tracking-wider mb-0.5">
+                Balance
+              </p>
               <p className="text-sm font-bold font-mono tabular-nums text-white">
-                ${(animatedBalance / 1000).toFixed(1)}K
+                ${animatedBalance}
               </p>
             </div>
 
             {/* P&L */}
             <div>
-              <p className="text-[9px] text-white/25 font-medium uppercase tracking-wider mb-0.5">P&L Today</p>
-              <div className={`flex items-center gap-1 ${
-                isPositive ? 'text-[#00e68a]' : 'text-[#ff4d6a]'
-              }`}>
-                {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+              <p className="text-[9px] text-white/25 font-medium uppercase tracking-wider mb-0.5">
+                P&L Today
+              </p>
+              <div
+                className={`flex items-center gap-1 ${
+                  isPositive ? "text-[#00e68a]" : "text-[#ff4d6a]"
+                }`}
+              >
+                {isPositive ? (
+                  <TrendingUp size={12} />
+                ) : (
+                  <TrendingDown size={12} />
+                )}
                 <span className="text-sm font-bold font-mono tabular-nums">
-                  {isPositive ? '+' : ''}{(animatedPnl / 1000).toFixed(2)}K
+                  {isPositive ? "+" : ""}
+                  {(animatedPnl / 1000).toFixed(2)}K
                 </span>
               </div>
             </div>
 
             {/* Win Rate */}
             <div>
-              <p className="text-[9px] text-white/25 font-medium uppercase tracking-wider mb-0.5">Win Rate</p>
+              <p className="text-[9px] text-white/25 font-medium uppercase tracking-wider mb-0.5">
+                Win Rate
+              </p>
               <div className="flex items-center gap-1 text-white">
                 <Award size={12} className="text-amber-400" />
                 <span className="text-sm font-bold font-mono tabular-nums">
@@ -193,7 +214,7 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = `linear-gradient(135deg, rgba(${trader.colorRgb}, 0.1), rgba(${trader.colorRgb}, 0.05))`;
-              e.currentTarget.style.boxShadow = 'none';
+              e.currentTarget.style.boxShadow = "none";
             }}
           >
             <Eye size={14} />
@@ -210,10 +231,15 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
         />
 
         {/* Activity Feed */}
-        <div className="flex-1 px-4 pt-2 pb-3 min-h-0" style={{ maxHeight: '180px' }}>
+        <div
+          className="flex-1 px-4 pt-2 pb-3 min-h-0"
+          style={{ maxHeight: "180px" }}
+        >
           <div className="flex items-center gap-2 px-1 mb-1">
             <Zap size={10} style={{ color: trader.color }} />
-            <span className="text-[9px] text-white/30 font-semibold uppercase tracking-widest">Live Trace</span>
+            <span className="text-[9px] text-white/30 font-semibold uppercase tracking-widest">
+              Live Trace
+            </span>
             <div className="flex-1" />
             <div className="flex items-center gap-0.5">
               {[0, 1, 2, 3].map((i) => (
@@ -229,13 +255,16 @@ export default function TraderCard({ trader, index, onViewPortfolio }) {
                     duration: 0.8 + Math.random() * 0.4,
                     repeat: Infinity,
                     delay: i * 0.15,
-                    ease: 'easeInOut',
+                    ease: "easeInOut",
                   }}
                 />
               ))}
             </div>
           </div>
-          <ActivityFeed activities={trader.activities} agentColor={trader.color} />
+          <ActivityFeed
+            activities={trader.activities}
+            agentColor={trader.color}
+          />
         </div>
       </div>
     </motion.div>

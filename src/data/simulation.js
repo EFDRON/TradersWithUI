@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:5000";
+const API_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL ?? "http://127.0.0.1:5000";
 const POLL_INTERVAL_MS = 10000;
 const TRADER_ORDER = ["warren", "george", "ray", "cathie"];
 
@@ -21,7 +22,8 @@ function normalizeNumber(value, fallback = 0) {
 }
 
 function normalizeActivity(activity, traderId, index) {
-  const type = ACTIVITY_TYPE_MAP[String(activity?.type ?? "").toLowerCase()] ?? "complete";
+  const type =
+    ACTIVITY_TYPE_MAP[String(activity?.type ?? "").toLowerCase()] ?? "complete";
   const timestamp = activity?.time ?? activity?.timestamp ?? "";
 
   return {
@@ -78,9 +80,18 @@ function normalizeTrader(trader, index) {
   );
   const recentTrades = normalizeTrades(trader?.recentTrades);
   const holdings = normalizeHoldings(trader?.holdings);
-  const initialBalance = normalizeNumber(trader?.initialBalance, normalizeNumber(trader?.currentBalance));
-  const currentBalance = normalizeNumber(trader?.currentBalance, initialBalance);
-  const previousBalance = normalizeNumber(trader?.previousBalance, currentBalance);
+  const initialBalance = normalizeNumber(
+    trader?.initialBalance,
+    normalizeNumber(trader?.currentBalance),
+  );
+  const currentBalance = normalizeNumber(
+    trader?.currentBalance,
+    initialBalance,
+  );
+  const previousBalance = normalizeNumber(
+    trader?.previousBalance,
+    currentBalance,
+  );
   const pnl = normalizeNumber(trader?.pnl, currentBalance - initialBalance);
   const pnlPercent = normalizeNumber(
     trader?.pnlPercent,
@@ -96,7 +107,8 @@ function normalizeTrader(trader, index) {
     color: trader?.color ?? "#00d4ff",
     colorDim: trader?.colorDim ?? "rgba(0, 212, 255, 0.15)",
     colorRgb: trader?.colorRgb ?? "0, 212, 255",
-    gradient: trader?.gradient ?? "linear-gradient(135deg, #00d4ff 0%, #2563eb 100%)",
+    gradient:
+      trader?.gradient ?? "linear-gradient(135deg, #00d4ff 0%, #2563eb 100%)",
     initialBalance,
     currentBalance,
     previousBalance,
@@ -210,7 +222,6 @@ export function useAnimatedNumber(value, duration = 500) {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
   }, [value, duration]);
-
   return displayed;
 }
 
